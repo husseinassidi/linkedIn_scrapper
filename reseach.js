@@ -2,6 +2,11 @@ import { promises as fs } from 'fs';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 import Job_Exists from './check_duplicate.js';
+import getJobDetails from './job_details.js';
+
+function transformUrl(url) {
+  return url.replace('https://lb.linkedin.com', 'https://www.linkedin.com');
+}
 
 // Function to fetch with retry logic
 export function delay(ms) {
@@ -101,19 +106,25 @@ export default async function saveJobList(n) {
         const job_paste_date = $(element).find('.job-search-card__listdate').attr('datetime');
 
         // Extract job link
-        const href = $(element).find('a.base-card__full-link').attr('href');
-
+        let href = $(element).find('a.base-card__full-link').attr('href');
+        console.log(href);
         if (href) {
+          href = transformUrl(href);
           const urlObj = new URL(href);
           const refId = urlObj.searchParams.get('refId');
           const trackingId = urlObj.searchParams.get('trackingId');
 
           if (!await Job_Exists(trackingId)) {
+
+            const job_details= await getJobDetails(urlObj)
+
+            
             existingJobList.push({
               refrID: refId,
               trackID: trackingId,
               link: href,
-              date: job_paste_date
+              date: job_paste_date,
+              details: job_details
             });
           }
         }

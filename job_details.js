@@ -4,11 +4,16 @@ import cheerio from 'cheerio';
 import { log } from 'console';
 
 // Define the URL
-const url = "https://www.linkedin.com/jobs/view/customer-service-representative-english-speaker-at-es-3947251755?position=6&pageNum=0&refId=0sfeSTKaidOjDHYEe16TFg%3D%3D&trackingId=XLW73rrskNl%2FHaE3DG6CFw%3D%3D&trk=public_jobs_jserp-result_search-card";
+
+
 
 // Function to fetch and parse job details
-async function getJobDetails(url) {
+export default async function getJobDetails(url) {
+
+
   try {
+
+
     const res = await fetch(url);
     const content = await res.text();
     if (content) {
@@ -70,8 +75,8 @@ async function getJobDetails(url) {
 }
 
 // Call the function and log the returned job details
-getJobDetails(url).then(jobDetails => {
-  console.log('Returned Job Details:', jobDetails);
-}).catch(err => {
-  console.error('Error:', err);
-});
+// getJobDetails(url).then(jobDetails => {
+//   console.log('Returned Job Details:', jobDetails);
+// }).catch(err => {
+//   console.error('Error:', err);
+// });
