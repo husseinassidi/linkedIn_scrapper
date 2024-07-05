@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import fetch from 'node-fetch';
 import cheerio from 'cheerio';
-import { log } from 'console';
+import Job_Exists from './check_duplicate.js';
 
 // Function to fetch with retry logic
 export function delay(ms) {
@@ -26,6 +26,7 @@ async function fetchWithRetry(url, options, retries = 600, delayMs = 1000) {
     }
   }
 }
+
 // Main function to save job list
 export default async function saveJobList(n) {
   const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=&location=Beirut&geoId=105606446&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0&start=${n}`;
@@ -50,52 +51,83 @@ export default async function saveJobList(n) {
   };
 
   try {
-    delay(10000)
+    // Delay to avoid being blocked
+    // await delay(10000);
 
+    // Fetch HTML content
     const html = await fetchWithRetry(url, options);
 
+    // Load HTML content with cheerio
     const $ = cheerio.load(html);
+
+    // Initialize an empty array for existing jobs
     let existingJobList = [];
     try {
-      
+      // Read existing job list from file
       const existingData = await fs.readFile('jobList.json', 'utf8');
-      // console.log(existingData)
-      existingJobList = JSON.parse(existingData);
+
+      // Check if the file is empty
+      if (existingData.trim() === '') {
+        console.log('jobList.json is empty. No jobs to check.');
+        existingJobList = [];
+      } else {
+        // Parse JSON data and ensure it's an array
+        try {
+          existingJobList = JSON.parse(existingData);
+          if (!Array.isArray(existingJobList)) {
+            throw new Error('Parsed data is not an array');
+          }
+        } catch (jsonError) {
+          console.error('Error parsing jobList.json:', jsonError.message);
+          existingJobList = [];
+        }
+      }
     } catch (error) {
-      // If the file does not exist or cannot be parsed, just use an empty array
-      if (error.code !== 'ENOENT') {
-        console.error('Error reading or parsing jobList.json:', error);
+      // Handle file not found or JSON parsing errors
+      if (error.code === 'ENOENT') {
+        console.log('jobList.json file does not exist. Creating new list.');
+        existingJobList = [];
+      } else {
+        console.error('Error reading jobList.json:', error.message);
+        existingJobList = [];
       }
     }
-    // Get job dates
+
+    // Collect promises for job processing
+    const jobPromises = [];
     $('li').each((index, element) => {
-      // Extract job date
-      const job_paste_date = $(element).find('.job-search-card__listdate').attr('datetime');
+      jobPromises.push(async () => {
+        // Extract job date
+        const job_paste_date = $(element).find('.job-search-card__listdate').attr('datetime');
 
-      // Extract job link
-      const href = $(element).find('a.base-card__full-link').attr('href');
+        // Extract job link
+        const href = $(element).find('a.base-card__full-link').attr('href');
 
+        if (href) {
+          const urlObj = new URL(href);
+          const refId = urlObj.searchParams.get('refId');
+          const trackingId = urlObj.searchParams.get('trackingId');
 
-      if (href) {
-        const urlObj = new URL(href);
-        const refId = urlObj.searchParams.get('refId');
-        const trackingId = urlObj.searchParams.get('trackingId');
-
-        existingJobList.push({ refrID: refId, trackID: trackingId, link: href, date: job_paste_date});
-      }
+          if (!await Job_Exists(trackingId)) {
+            existingJobList.push({
+              refrID: refId,
+              trackID: trackingId,
+              link: href,
+              date: job_paste_date
+            });
+          }
+        }
+      });
     });
 
-    // // Read existing job list from file
+    // Execute all job processing promises
+    await Promise.all(jobPromises.map(p => p()));
 
+    console.log(existingJobList);
 
-    // // Merge new data with existing data
-    // const combinedJobList = [...existingJobList, ...jobListHtml];
-
-    // Write the combined job list to the file
+    // Write the updated job list to the file
     await fs.writeFile('jobList.json', JSON.stringify(existingJobList, null, 2));
-    console.log('JSON file has been updated.',n);
-
-    // console.log(combinedJobList);
+    console.log('JSON file has been updated.', n);
 
     // Save HTML content if needed
     if ($.html()) {
@@ -106,7 +138,6 @@ export default async function saveJobList(n) {
   } catch (error) {
     console.error('There was a problem with the fetch operation:', error);
   }
-
 }
 
 // Call the function
