@@ -1,0 +1,34 @@
+import { promises as fs } from 'fs';
+
+// Function to check if a job with the given trackID exists
+export default async function Job_Exists(trackID) {
+  let existingJobList = [];
+  try {
+    // Read and parse the existing job list from the file
+    const existingData = await fs.readFile('jobList.json', 'utf8');
+    existingJobList = JSON.parse(existingData);
+
+    // Check if any job in the list matches the given trackID
+    const jobExists = existingJobList.some(element => element.trackID === trackID);
+    
+    return jobExists;
+  } catch (error) {
+    // Handle file not found or JSON parsing errors
+    if (error.code === 'ENOENT') {
+      console.log('jobList.json file does not exist. Returning false.');
+      return false;
+    } else {
+      console.error('Error reading or parsing jobList.json:', error);
+      return false;
+    }
+  }
+}
+
+// Example usage
+Job_Exists("XLW73rrskNl/HaE3DG6CFw==")
+  .then(res => {
+    console.log('Job Exists:', res);
+  })
+  .catch(err => {
+    console.error('Error:', err);
+  });
