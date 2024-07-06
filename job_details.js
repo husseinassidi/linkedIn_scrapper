@@ -81,8 +81,8 @@ export default async function getJobDetails(url) {
 }
 
 // Call the function and log the returned job details
-getJobDetails(url).then(jobDetails => {
-  console.log('Returned Job Details:', jobDetails);
-}).catch(err => {
-  console.error('Error:', err);
-});
+// getJobDetails(url).then(jobDetails => {
+//   console.log('Returned Job Details:', jobDetails);
+// }).catch(err => {
+//   console.error('Error:', err);
+// });
