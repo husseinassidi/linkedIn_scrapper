@@ -6,6 +6,7 @@ import { log } from 'console';
 // Define the URL
 
 
+let url ="https://www.linkedin.com/jobs/view/senior-international-affairs-officer-iao202430-at-holy-spirit-university-of-kaslik-usek-3963199642?position=8&pageNum=13&refId=rx2NszOjjBadyjBlKMq4aQ%3D%3D&trackingId=%2FaqMPRGuR7Evkpz88x1AMA%3D%3D&trk=public_jobs_jserp-result_search-card"
 
 // Function to fetch and parse job details
 export default async function getJobDetails(url) {
@@ -26,7 +27,8 @@ export default async function getJobDetails(url) {
       let Job_Description = $(".show-more-less-html__markup--clamp-after-5").text().trim().replace(/\n/g, '').replace(/\s\s+/g, ' ');
       const Post_Date = $(".posted-time-ago__text").text().trim();
       const Num_Applicants = $(".num-applicants__caption").text().trim().replace(/\n/g, '').replace(/\s\s+/g, ' ');
-      let  Skills_Needed = $(".description__job-criteria-list").text().trim().replace(/\n/g, '').replace(/\s\s+/g, ' ');
+      let  Industry = $(".description__job-criteria-list").text().trim().replace(/\n/g, '').replace(/\s\s+/g, ' ');
+
 
       // Remove any duplicate parts from Job_Description
       Job_Description = Job_Description.replace(/(?:.*?)(We are looking for a Customer Service Rep to be part of our team\.)/, '$1').trim();
@@ -34,12 +36,13 @@ export default async function getJobDetails(url) {
       // Remove the "Over 200 applicants" part from Job_Location
       Job_Location = Job_Location.replace(/Over \d+ applicants/, '').trim();
 
-    Skills_Needed = '';
+      Industry = '';
       const criteriaList = $(".description__job-criteria-list li");
       if (criteriaList.length >= 4) {
-        Skills_Needed = $(criteriaList[3]).text().trim(); // Index 3 for the fourth <li>
+        const fourthLi = $(criteriaList[3]); // Index 3 for the fourth <li>
+        const span = fourthLi.find('span'); // Select the span within this <li>
+        Industry = span.text().trim(); // Extract text from the span
       }
-
       // Extract commented out application link from the <code> element
       const applicationCode = $("#applyUrl").html();
       let Application_Link = '';
@@ -48,6 +51,9 @@ export default async function getJobDetails(url) {
         if (match) {
           Application_Link = match[1].trim();
         }
+      }
+      else{
+        Application_Link = url
       }
 
       // Create job details object
@@ -58,7 +64,7 @@ export default async function getJobDetails(url) {
         Job_Description,
         Post_Date,
         Num_Applicants,
-        Skills_Needed,
+        Industry,
         Application_Link
       };
 
@@ -75,8 +81,8 @@ export default async function getJobDetails(url) {
 }
 
 // Call the function and log the returned job details
-// getJobDetails(url).then(jobDetails => {
-//   console.log('Returned Job Details:', jobDetails);
-// }).catch(err => {
-//   console.error('Error:', err);
-// });
+getJobDetails(url).then(jobDetails => {
+  console.log('Returned Job Details:', jobDetails);
+}).catch(err => {
+  console.error('Error:', err);
+});

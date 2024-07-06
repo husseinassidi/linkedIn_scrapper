@@ -100,28 +100,30 @@ export default async function saveJobList(n) {
 
     // Collect promises for job processing
     const jobPromises = [];
-    $('li').each((index, element) => {
+    $('li').each(async (index, element) => {
       jobPromises.push(async () => {
         // Extract job date
         const job_paste_date = $(element).find('.job-search-card__listdate').attr('datetime');
 
         // Extract job link
         let href = $(element).find('a.base-card__full-link').attr('href');
-        console.log(href);
         if (href) {
           href = transformUrl(href);
           const urlObj = new URL(href);
-          const refId = urlObj.searchParams.get('refId');
-          const trackingId = urlObj.searchParams.get('trackingId');
+          let urn = $(element).find('.base-card').attr('data-entity-urn');
+          
 
-          if (!await Job_Exists(trackingId)) {
+          urn = await urn.slice(18,-1)
+          console.log(urn);
+
+
+          if (!await Job_Exists(urn)) {
 
             const job_details= await getJobDetails(urlObj)
 
             
             existingJobList.push({
-              refrID: refId,
-              trackID: trackingId,
+              jobId: urn,
               link: href,
               date: job_paste_date,
               details: job_details
@@ -134,7 +136,6 @@ export default async function saveJobList(n) {
     // Execute all job processing promises
     await Promise.all(jobPromises.map(p => p()));
 
-    console.log(existingJobList);
 
     // Write the updated job list to the file
     await fs.writeFile('jobList.json', JSON.stringify(existingJobList, null, 2));
